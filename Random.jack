@@ -1,0 +1,47 @@
+/**
+ * Random number generator for Jack language.
+ * Implements a simple linear congruential generator.
+ */
+class Random {
+    field int seed;
+    
+    /** Constructs a new random number generator with the given seed */
+    constructor Random new(int Aseed) {
+        let seed = Aseed;
+        if (seed = 0) {
+            let seed = 1234; // Default seed if zero is provided
+        }
+        return this;
+    }
+    
+    /** Constructs a new random number generator with default seed */
+    constructor Random newDefault() {
+        let seed = 1234; // Default seed
+        return this;
+    }
+    
+    /** Returns a pseudo-random number between 0 and 32767 */
+    method int rand() {
+        let seed = seed + 20251;
+        
+        if (seed < 0) {
+            let seed = seed - 32767 - 1;
+        }
+        
+        return seed;
+    }
+    
+    /** Returns a random integer between 0 and max-1 */
+    method int nextInt(int max) {
+        var int randVal;
+        
+        let randVal = rand();
+        return randVal - ((randVal / max) * max);
+    }
+    
+    /** Disposes this random number generator */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}

@@ -1,0 +1,23 @@
+/**
+ * Constants class for the Stick Hero game.
+ * Provides constants for various game parameters.
+ */
+class Constants {
+    // Screen dimensions
+    function int screenWidth() { return 512; }
+    function int screenHeight() { return 256; }
+    
+    // Game constants
+    function int initialPlatformWidth() { return 50; }
+    function int platformHeight() { return 50; }
+    function int heroSize() { return 10; }
+    function int stickGrowthRate() { return 3; }
+    function int rotationSpeed() { return 5; }
+    
+    // Difficulty constants
+    function int minGapWidth() { return 30; }
+    function int maxGapWidth() { return 80; }
+    function int minPlatformWidth() { return 30; }
+    function int maxPlatformWidth() { return 70; }
+    function int difficultyIncreaseThreshold() { return 5; }
+}

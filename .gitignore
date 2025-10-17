@@ -1,0 +1,16 @@
+# Compiled VM files from Jack
+*.vm
+
+# Any compiled binaries
+*.o
+*.class
+
+# macOS system files
+.DS_Store
+
+# Replit notes or local files
+replit.md
+
+# Backup files
+*~
+*.bak

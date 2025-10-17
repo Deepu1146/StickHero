@@ -1,0 +1,18 @@
+/** 
+ * Main class for Stick Hero game.
+ * Initializes the game and starts it.
+ */
+class Main {
+    function void main() {
+        var Game game;
+        
+        // Create and start a new game
+        let game = Game.new();
+        do game.run();
+        
+        // Dispose game when it ends
+        do game.dispose();
+        
+        return;
+    }
+}

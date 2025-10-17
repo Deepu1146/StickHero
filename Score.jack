@@ -1,0 +1,101 @@
+/**
+ * Score class handles tracking and displaying the player's score
+ * and handling game over conditions.
+ */
+class Score {
+    field int score;         // Current score
+    field int highScore;     // High score across sessions
+    field int failReason;    // Reason for game over (1 = gap fall, 2 = overshot, 3 = fell off screen)
+    field boolean perfectLanding; // Whether the last landing was perfect
+    
+    /** Constructs a new score tracker */
+    constructor Score new() {
+        let score = 0;
+        let highScore = 0;
+        let failReason = 0;
+        let perfectLanding = false;
+        
+        return this;
+    }
+    
+    /** Returns the current score */
+    method int getScore() {
+        return score;
+    }
+    
+    /** Returns the high score */
+    method int getHighScore() {
+        return highScore;
+    }
+    
+    /** Resets the score (not the high score) */
+    method void reset() {
+        let score = 0;
+        let failReason = 0;
+        let perfectLanding = false;
+        return;
+    }
+    
+    /** Increments the score by 1 */
+    method void increment() {
+        let score = score + 1;
+        if (score > highScore) {
+            let highScore = score;
+        }
+        return;
+    }
+    
+    /** Increments the score by a specified amount */
+    method void incrementByAmount(int amount) {
+        let score = score + amount;
+        if (score > highScore) {
+            let highScore = score;
+        }
+        return;
+    }
+    
+    /** Sets the reason for failure/game over */
+    method void setFailReason(int reason) {
+        let failReason = reason;
+        return;
+    }
+    
+    /** Sets whether the landing was perfect */
+    method void setPerfectLanding(boolean perfect) {
+        let perfectLanding = perfect;
+        return;
+    }
+    
+    /** Gets a string describing the failure reason */
+    method String getFailReasonString() {
+        if (failReason = 1) {
+            return "Stick too short!";
+        } else { if (failReason = 2) {
+            return "Stick too long!";
+        } else { if (failReason = 3) {
+            return "You fell off!";
+        } else {
+            return "Game Over";
+        }}}
+    }
+    
+    /** Draws the score */
+    method void draw() {
+        do Output.moveCursor(0, 0);
+        do Output.printString("Score: ");
+        do Output.printInt(score);
+        
+        if (perfectLanding) {
+            do Output.moveCursor(0, 20);
+            do Output.printString("Perfect landing! +2");
+        }
+        
+        return;
+    }
+    
+    /** Disposes the score */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}

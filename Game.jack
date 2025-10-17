@@ -1,0 +1,565 @@
+/**
+ * Game class for Stick Hero.
+ * Controls the overall game flow, including rendering and game logic.
+ */
+class Game {
+    // Game state constants
+    field int STATE_TITLE;       // New title screen state
+    field int STATE_INIT;
+    field int STATE_GROWING;
+    field int STATE_ROTATING;
+    field int STATE_MOVING;
+    field int STATE_GAME_OVER;
+    
+    // Game objects
+    field Stick stick;
+    field Platform currentPlatform, nextPlatform;
+    field Score score;
+    field Random random;
+    
+    // Game state variables
+    field int gameState;
+    field int heroX, heroY;      // World coordinates of the hero
+    field int heroSize;
+    field boolean exit;
+    field int screenWidth, screenHeight;
+    
+    // Camera variables
+    field int cameraOffsetX;     // Camera offset (for scrolling)
+    field int targetCameraOffsetX; // Target camera position for smooth movement
+    
+    // Difficulty scaling variables
+    field int difficultyLevel;   // Current difficulty level
+    field int scoreThreshold;    // Score needed to increase difficulty
+    
+    /** Constructs a new Game instance */
+    constructor Game new() {
+        // Initialize constants
+        let STATE_TITLE = 0;    // New title screen state
+        let STATE_INIT = 1;
+        let STATE_GROWING = 2;
+        let STATE_ROTATING = 3;
+        let STATE_MOVING = 4;
+        let STATE_GAME_OVER = 5;
+        
+        // Get screen dimensions
+        let screenWidth = 512;  // Standard Jack screen width
+        let screenHeight = 256; // Standard Jack screen height
+        
+        // Initialize game state
+        let gameState = STATE_TITLE;  // Start at title screen
+        let exit = false;
+        let heroSize = 10; // Size of the hero character in pixels
+        
+        // Initialize camera
+        let cameraOffsetX = 0;
+        let targetCameraOffsetX = 0;
+        
+        // Initialize difficulty variables
+        let difficultyLevel = 1;
+        let scoreThreshold = 5;  // Increase difficulty every 5 points
+        
+        // Create game objects - needed for both title screen and game
+        let stick = Stick.new();
+        let score = Score.new();
+        let random = Random.new(1234); // Seed can be any value
+        
+        // Create placeholder platforms for title screen
+        // These will be properly initialized when the game starts with initializeGame()
+        let currentPlatform = Platform.new(0, screenHeight - 50, 50);
+        let nextPlatform = Platform.new(100, screenHeight - 50, 40);
+        
+        // Set initial position for stick
+        do stick.setPosition(50, screenHeight - 50);
+        
+        // Position hero for title screen display
+        let heroX = 25;
+        let heroY = screenHeight - 50 - heroSize;
+        
+        return this;
+    }
+    
+    /** Initializes or resets the game */
+    method void initializeGame() {
+        var int platformWidth, gapWidth, nextPlatformWidth;
+        var int minGap, maxGap, minWidth, maxWidth;
+        
+        // Reset difficulty if not already set
+        if (difficultyLevel < 1) {
+            let difficultyLevel = 1;
+        }
+        
+        // Calculate initial platform properties based on difficulty
+        let minGap = 30 + ((difficultyLevel - 1) * 5);
+        let maxGap = 80 + ((difficultyLevel - 1) * 5);
+        let minWidth = Math.max(20, 40 - ((difficultyLevel - 1) * 2));
+        let maxWidth = Math.max(40, 70 - ((difficultyLevel - 1) * 3));
+        
+        // Initial platform sizes with difficulty consideration
+        let platformWidth = 50; // First platform always fixed size
+        let gapWidth = random.nextInt(maxGap - minGap) + minGap;
+        let nextPlatformWidth = random.nextInt(maxWidth - minWidth) + minWidth;
+        
+        // Create platforms
+        let currentPlatform = Platform.new(0, screenHeight - 50, platformWidth);
+        let nextPlatform = Platform.new(platformWidth + gapWidth, screenHeight - 50, nextPlatformWidth);
+        
+        // Position hero on first platform
+        let heroX = platformWidth - heroSize - 5; // 5 pixels from edge
+        let heroY = screenHeight - 50 - heroSize;
+        
+        // Position stick at edge of first platform
+        do stick.setPosition(platformWidth, screenHeight - 50);
+        do stick.reset();
+        
+        // Reset score
+        do score.reset();
+        
+        // Start in INIT state
+        let gameState = STATE_INIT;
+        
+        // Reset camera
+        let cameraOffsetX = 0;
+        let targetCameraOffsetX = 0;
+        
+        return;
+    }
+    
+    /** Main game loop */
+    method void run() {
+        var char key;
+        var boolean keyPressed;
+        
+        let keyPressed = false;
+        
+        while (~exit) {
+            // Get keyboard input
+            let key = Keyboard.keyPressed();
+            
+            // Process input based on game state
+            if (gameState = STATE_TITLE) {
+                // Press any key to start the game from title screen
+                if ((~(key = 0)) & (~keyPressed)) {
+                    // Initialize the actual game when leaving the title screen
+                    do initializeGame();
+                    let keyPressed = true;
+                }
+            } else { if (gameState = STATE_INIT) {
+                // Press any key to start growing the stick
+                if ((~(key = 0)) & (~keyPressed)) {
+                    let gameState = STATE_GROWING;
+                    let keyPressed = true;
+                }
+            } else { if (gameState = STATE_GROWING) {
+                // Grow stick while key is pressed
+                if (~(key = 0)) {
+                    do stick.grow();
+                    let keyPressed = true;
+                } else { if (keyPressed) {
+                    // Key released, start rotating the stick
+                    let gameState = STATE_ROTATING;
+                    let keyPressed = false;
+                }}
+            } else { if (gameState = STATE_ROTATING) {
+                // Rotation is handled in update method
+                if (key = 0) {
+                    let keyPressed = false;
+                }
+            } else { if (gameState = STATE_MOVING) {
+                // Movement is handled in update method
+                if (key = 0) {
+                    let keyPressed = false;
+                }
+            } else { if (gameState = STATE_GAME_OVER) {
+                // Restart game on key press
+                if ((~(key = 0)) & (~keyPressed)) {
+                    // Reset difficulty when restarting
+                    let difficultyLevel = 1;
+                    do initializeGame();
+                    let keyPressed = true;
+                } else { if (key = 0) {
+                    let keyPressed = false;
+                }}
+            }}}}}}
+            
+            // Check for exit (ESC key)
+            if (key = 140) {
+                let exit = true;
+            }
+            
+            // Update game state
+            do update();
+            
+            // Render the game
+            do render();
+            
+            // Short delay for animation
+            do Sys.wait(50);
+        }
+        
+        return;
+    }
+    
+    /** Updates game state */
+    method void update() {
+        var int stickLength, gapWidth, stickTip;
+        var int platformStart, platformEnd;
+        var int i, cameraDiff;
+        
+        // Update camera position (smooth movement toward target)
+        let cameraDiff = targetCameraOffsetX - cameraOffsetX;
+        if (cameraDiff > 0) {
+            if (cameraDiff > 10) {
+                let cameraOffsetX = cameraOffsetX + 10;
+            } else {
+                let cameraOffsetX = cameraOffsetX + 1;
+            }
+        } else { 
+            if (cameraDiff < 0) {
+                if (cameraDiff < -10) {
+                    let cameraOffsetX = cameraOffsetX - 10;
+                } else {
+                    let cameraOffsetX = cameraOffsetX - 1;
+                }
+            }
+        }
+        
+        // Ensure camera offset is never negative
+        if (cameraOffsetX < 0) {
+            let cameraOffsetX = 0;
+        }
+        
+        if (gameState = STATE_TITLE) {
+            // Title screen animation: gently move the stick up and down
+            do stick.gentleSwing();
+        } else { if (gameState = STATE_ROTATING) {
+            // Rotate the stick until it's horizontal
+            if (stick.rotate()) {
+                let gameState = STATE_MOVING;
+            }
+        } else { if (gameState = STATE_MOVING) {
+            // Move hero across the stick
+            let stickLength = stick.getLength();
+            let stickTip = currentPlatform.getRight() + stickLength;
+            
+            // Move hero forward
+            let heroX = heroX + 4;
+            
+            // Check if hero reached the end of stick
+            if (heroX > stickTip - (heroSize / 2)) {
+                // Check if stick reached the next platform
+                let gapWidth = nextPlatform.getLeft() - currentPlatform.getRight();
+                let platformStart = nextPlatform.getLeft();
+                let platformEnd = nextPlatform.getRight();
+                
+                // Check precise landing conditions
+                if (stickLength < gapWidth) {
+                    // Stick too short - hero falls into gap
+                    do score.setFailReason(1); // Gap fall
+                    
+                    // Animate hero falling (rendered multiple times with falling animation)
+                    let i = 0;
+                    while (i < 10) {
+                        let heroY = heroY + 10;
+                        do render();
+                        do Sys.wait(50);
+                        let i = i + 1;
+                    }
+                    
+                    let gameState = STATE_GAME_OVER;
+                } else { if (stickLength > (platformStart + nextPlatform.getWidth())) {
+                    // Stick too long - overshot the platform
+                    do score.setFailReason(2); // Overshot
+                    
+                    // Animate hero falling (rendered multiple times with falling animation)
+                    let i = 0;
+                    while (i < 10) {
+                        let heroY = heroY + 10;
+                        do render();
+                        do Sys.wait(50);
+                        let i = i + 1;
+                    }
+                    
+                    let gameState = STATE_GAME_OVER;
+                } else {
+                    // Perfect or good landing
+                    if ((stickTip > platformStart + 5) & (stickTip < platformEnd - 5)) {
+                        // Perfect landing - bonus points
+                        do score.incrementByAmount(2);
+                        do score.setPerfectLanding(true);
+                    } else {
+                        // Regular landing
+                        do score.increment();
+                        do score.setPerfectLanding(false);
+                    }
+                    
+                    do advanceToNextPlatform();
+                }}
+            }
+            
+            // Check if hero falls off screen (additional failure condition)
+            if (heroY > screenHeight) {
+                do score.setFailReason(3); // Fell off screen
+                let gameState = STATE_GAME_OVER;
+            }
+        } else { if (gameState = STATE_GAME_OVER) {
+            // Add gentle swinging motion to the stick in game over state
+            do stick.gentleSwing();
+        }}}}
+        
+        return;
+    }
+    
+    /** Advances to the next platform after successful crossing */
+    method void advanceToNextPlatform() {
+        var int newGapWidth, newPlatformWidth, newPlatformX;
+        var int minGap, maxGap, minWidth, maxWidth;
+        var Platform oldPlatform;
+        var int currentScore;
+        var boolean shouldIncreaseDifficulty;
+        
+        // Check if difficulty should be increased
+        let currentScore = score.getScore();
+        
+        // Only increase difficulty for scores that are multiples of the threshold and greater than 0
+        let shouldIncreaseDifficulty = false;
+        if (currentScore > 0) {
+            if (currentScore - ((currentScore / scoreThreshold) * scoreThreshold) = 0) {
+                let shouldIncreaseDifficulty = true;
+            }
+        }
+        
+        // Increase difficulty if needed
+        if (shouldIncreaseDifficulty) {
+            let difficultyLevel = difficultyLevel + 1;
+        }
+        
+        // Store reference to current platform
+        let oldPlatform = currentPlatform;
+        
+        // Current platform becomes the platform we just reached
+        let currentPlatform = nextPlatform;
+        
+        // Calculate platform properties based on difficulty
+        // Higher difficulty means wider gaps and narrower platforms
+        let minGap = 30 + (difficultyLevel * 5); // Gap increases with difficulty
+        let maxGap = 80 + (difficultyLevel * 5);
+        let minWidth = Math.max(20, 40 - (difficultyLevel * 2)); // Width decreases with difficulty
+        let maxWidth = Math.max(40, 70 - (difficultyLevel * 3));
+        
+        // Calculate new platform properties with difficulty adjustments
+        let newGapWidth = random.nextInt(maxGap - minGap) + minGap;
+        let newPlatformWidth = random.nextInt(maxWidth - minWidth) + minWidth;
+        let newPlatformX = currentPlatform.getLeft() + currentPlatform.getWidth() + newGapWidth;
+        
+        // Create new next platform
+        let nextPlatform = Platform.new(newPlatformX, screenHeight - 50, newPlatformWidth);
+        
+        // Dispose old platform
+        do oldPlatform.dispose();
+        
+        // Reset hero position
+        let heroX = currentPlatform.getLeft() + currentPlatform.getWidth() - heroSize - 5;
+        
+        // Reset stick
+        do stick.setPosition(currentPlatform.getRight(), screenHeight - 50);
+        do stick.reset();
+        
+        // Update camera target position to focus on current platform
+        // We want the current platform to be positioned about 1/4 from the left of the screen
+        let targetCameraOffsetX = currentPlatform.getLeft() - (screenWidth / 4);
+        
+        // Return to initial state
+        let gameState = STATE_INIT;
+        
+        return;
+    }
+    
+    /** Renders the game */
+    method void render() {
+        var int x1, y1, x2, y2;
+        var int screenX; // Hero's screen position after camera offset
+        var int centerX, centerY;
+        
+        // Clear screen
+        do Screen.clearScreen();
+        
+        if (gameState = STATE_TITLE) {
+            // Draw title screen
+            do drawTitleScreen();
+        } else {
+            // Draw platforms with camera offset
+            do currentPlatform.draw(cameraOffsetX);
+            do nextPlatform.draw(cameraOffsetX);
+            
+            // Draw stick with camera offset
+            do stick.draw(cameraOffsetX);
+            
+            // Calculate hero rectangle coordinates with camera offset and bounds checking
+            let screenX = heroX - cameraOffsetX; // Apply camera offset to hero position
+            let x1 = Math.max(0, Math.min(screenX, 511));
+            let y1 = Math.max(0, Math.min(heroY, 255));
+            let x2 = Math.max(0, Math.min(screenX + heroSize, 511));
+            let y2 = Math.max(0, Math.min(heroY + heroSize, 255));
+            
+            // Ensure x1 <= x2 and y1 <= y2
+            if ((x1 < x2) & (y1 < y2)) {
+                // Draw hero as a small rectangle
+                do Screen.setColor(true);
+                do Screen.drawRectangle(x1, y1, x2, y2);
+            }
+            
+            // Draw score and difficulty level
+            do score.draw();
+            do Output.moveCursor(2, 0);
+            do Output.printString("Difficulty: ");
+            do Output.printInt(difficultyLevel);
+            
+            // Draw game over message if needed
+            if (gameState = STATE_GAME_OVER) {
+                do drawGameOver();
+            }
+        }
+        
+        return;
+    }
+    
+    /** Draws the title screen */
+    method void drawTitleScreen() {
+        var int centerX, centerY;
+        
+        // Calculate center position
+        let centerX = screenWidth / 2;
+        let centerY = screenHeight / 2;
+        
+        // Draw title
+        do Output.moveCursor(5, 22);
+        do Output.printString("STICK HERO");
+        
+        // Draw stick figure
+        do Screen.setColor(true);
+        do Screen.drawLine(centerX - 50, centerY, centerX + 50, centerY); // Horizontal line
+        do Screen.drawLine(centerX, centerY, centerX, centerY - 30); // Vertical stick
+        
+        // Draw a sample hero
+        do Screen.drawRectangle(centerX - 5, centerY - 40, centerX + 5, centerY - 30);
+        
+        // Draw instructions
+        do Output.moveCursor(15, 15);
+        do Output.printString("Press any key to start");
+        
+        do Output.moveCursor(17, 8);
+        do Output.printString("Press and hold to extend the stick,");
+        do Output.moveCursor(18, 8);
+        do Output.printString("release to drop it and cross the gap.");
+        
+        // Draw game info
+        do Output.moveCursor(21, 18);
+        do Output.printString("The game gets harder");
+        do Output.moveCursor(22, 17);
+        do Output.printString("as your score increases!");
+        
+        return;
+    }
+    
+    /** Displays the game over message */
+    method void drawGameOver() {
+        var String failReason;
+        var int centerX, centerY, boxWidth, boxHeight;
+        var int topY, bottomY, leftX, rightX;
+        
+        // Calculate center position
+        let centerX = screenWidth / 2;
+        let centerY = screenHeight / 2;
+        
+        // Define game over box dimensions
+        let boxWidth = 300;
+        let boxHeight = 150;
+        let leftX = centerX - (boxWidth / 2);
+        let rightX = centerX + (boxWidth / 2);
+        let topY = centerY - (boxHeight / 2);
+        let bottomY = centerY + (boxHeight / 2);
+        
+        // Draw game over box with bounds checking
+        let leftX = Math.max(0, Math.min(leftX, 511));
+        let rightX = Math.max(0, Math.min(rightX, 511));
+        let topY = Math.max(0, Math.min(topY, 255));
+        let bottomY = Math.max(0, Math.min(bottomY, 255));
+        
+        if ((leftX < rightX) & (topY < bottomY)) {
+            // Draw semi-transparent box (checkerboard pattern)
+            do Screen.setColor(true);
+            do drawCheckerboardBox(leftX, topY, rightX, bottomY);
+        }
+        
+        // Display game over text
+        do Output.moveCursor(8, 22); // Position near center
+        do Output.printString("GAME OVER");
+        
+        // Display fail reason
+        do Output.moveCursor(10, 16);
+        do Output.printString(score.getFailReasonString());
+        
+        // Display final score
+        do Output.moveCursor(12, 17);
+        do Output.printString("Final Score: ");
+        do Output.printInt(score.getScore());
+        
+        // Display high score
+        do Output.moveCursor(14, 17);
+        do Output.printString("High Score: ");
+        do Output.printInt(score.getHighScore());
+        
+        // Display restart instructions
+        do Output.moveCursor(16, 14);
+        do Output.printString("Press any key to restart");
+        
+        return;
+    }
+    
+    /** Draws a checkerboard pattern box for semi-transparent effect */
+    method void drawCheckerboardBox(int x1, int y1, int x2, int y2) {
+        var int i, j;
+        var boolean drawPixel;
+        
+        // Draw a checkerboard pattern for semi-transparency effect
+        let i = x1;
+        while (i < x2) {
+            let j = y1;
+            while (j < y2) {
+                let drawPixel = (((i / 4) + (j / 4)) & 1) = 0;
+                
+                if (drawPixel) {
+                    do Screen.drawPixel(i, j);
+                }
+                
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+        
+        // Draw solid border
+        do Screen.drawRectangle(x1, y1, x2, y1 + 1); // Top
+        do Screen.drawRectangle(x1, y2 - 1, x2, y2); // Bottom
+        do Screen.drawRectangle(x1, y1, x1 + 1, y2); // Left
+        do Screen.drawRectangle(x2 - 1, y1, x2, y2); // Right
+        
+        return;
+    }
+    
+    /** Returns the current camera offset X */
+    method int getCameraOffset() {
+        return cameraOffsetX;
+    }
+    
+    /** Disposes of this game */
+    method void dispose() {
+        do stick.dispose();
+        do currentPlatform.dispose();
+        do nextPlatform.dispose();
+        do score.dispose();
+        do random.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}
