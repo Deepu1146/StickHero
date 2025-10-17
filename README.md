@@ -67,5 +67,3 @@ Author
 Manideep — B.Tech CSE (AI), Amrita Vishwa Vidyapeetham, Bengaluru.
 Passionate about system-level design, game development, and embedded systems.
 
-yaml
-Copy code
